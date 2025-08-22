@@ -1,27 +1,28 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Faça login em sua conta
-        </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          Sistema de Gestão de Viagens
-        </p>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-6">
+      
+      <!-- Cabeçalho -->
+      <div class="text-center">
+        <h1 class="text-4xl font-extrabold text-gray-900">Bem-vindo de volta</h1>
+        <p class="mt-2 text-sm text-gray-600">Faça login para acessar o Sistema de Gestão de Viagens</p>
       </div>
       
-      <Card class="mt-8">
-        <CardHeader>
-          <CardTitle>Entrar</CardTitle>
-          <CardDescription>
-            Digite suas credenciais para acessar o sistema
+      <!-- Card de Login -->
+      <Card class="bg-white shadow-lg rounded-xl border border-gray-200">
+        <CardHeader class="text-center">
+          <CardTitle class="text-2xl font-semibold">Entrar</CardTitle>
+          <CardDescription class="text-gray-500">
+            Digite suas credenciais abaixo
           </CardDescription>
         </CardHeader>
         
         <CardContent>
-          <form @submit.prevent="handleLogin" class="space-y-6">
-            <div class="space-y-2">
-              <Label htmlFor="email">Email</Label>
+          <form @submit.prevent="handleLogin" class="space-y-5">
+            
+            <!-- Email -->
+            <div class="space-y-1">
+              <Label for="email" class="text-sm font-medium text-gray-700">Email</Label>
               <Input
                 id="email"
                 v-model="email"
@@ -29,11 +30,13 @@
                 placeholder="seu.email@exemplo.com"
                 required
                 :disabled="loading"
+                class="focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
               />
             </div>
             
-            <div class="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+            <!-- Senha -->
+            <div class="space-y-1">
+              <Label for="password" class="text-sm font-medium text-gray-700">Senha</Label>
               <Input
                 id="password"
                 v-model="password"
@@ -41,29 +44,33 @@
                 placeholder="••••••••"
                 required
                 :disabled="loading"
+                class="focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
               />
             </div>
             
+            <!-- Botão -->
             <Button 
               type="submit" 
-              class="w-full"
+              class="w-full flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md py-2 transition-colors disabled:opacity-50"
               :disabled="loading"
             >
-              <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 v-if="loading" class="h-4 w-4 animate-spin" />
               {{ loading ? 'Entrando...' : 'Entrar' }}
             </Button>
+            
           </form>
         </CardContent>
       </Card>
       
-      <!-- Alert para mensagens de erro -->
-      <Alert v-if="error" variant="destructive" class="mt-4">
-        <AlertCircle class="h-4 w-4" />
-        <AlertTitle>Erro!</AlertTitle>
-        <AlertDescription>
-          {{ error }}
-        </AlertDescription>
+      <!-- Mensagem de Erro -->
+      <Alert v-if="error" variant="destructive" class="mt-4 flex items-center gap-2">
+        <AlertCircle class="h-5 w-5" />
+        <div>
+          <AlertTitle class="font-semibold">Erro</AlertTitle>
+          <AlertDescription class="text-sm">{{ error }}</AlertDescription>
+        </div>
       </Alert>
+      
     </div>
   </div>
 </template>
