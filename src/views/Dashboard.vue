@@ -81,8 +81,8 @@
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
+                <TableHead>Nome Viagem</TableHead>
                 <TableHead>Destino</TableHead>
-                <TableHead>Solicitante</TableHead>
                 <TableHead>Data Início</TableHead>
                 <TableHead>Data Fim</TableHead>
                 <TableHead>Status</TableHead>
@@ -92,10 +92,10 @@
             <TableBody>
               <TableRow v-for="request in filteredRequests" :key="request.id">
                 <TableCell class="font-medium">#{{ request.id }}</TableCell>
+                <TableCell>{{ request.requester_name }}</TableCell>
                 <TableCell>{{ request.destination }}</TableCell>
-                <TableCell>{{ request.user?.name }}</TableCell>
-                <TableCell>{{ formatDate(request.start_date) }}</TableCell>
-                <TableCell>{{ formatDate(request.end_date) }}</TableCell>
+                <TableCell>{{ formatDate(request.departure_date) }}</TableCell>
+                <TableCell>{{ formatDate(request.return_date) }}</TableCell>
                 <TableCell>
                   <Badge :variant="getStatusVariant(request.status)">
                     {{ getStatusLabel(request.status) }}
@@ -109,27 +109,20 @@
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem @click="viewRequest(request)">
-                        <Eye class="mr-2 h-4 w-4" />
-                        Visualizar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem @click="editRequest(request)">
-                        <Edit class="mr-2 h-4 w-4" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem @click="updateStatus(request, 'approved')" v-if="request.status === 'pending'">
+                      <DropdownMenuItem @click="updateStatus(request, 'aprovado')">
                         <Check class="mr-2 h-4 w-4" />
                         Aprovar
                       </DropdownMenuItem>
-                      <DropdownMenuItem @click="updateStatus(request, 'rejected')" v-if="request.status === 'pending'">
+                      <DropdownMenuItem @click="updateStatus(request, 'cancelado')">
                         <X class="mr-2 h-4 w-4" />
-                        Rejeitar
+                        Cancelar
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
+
+
             </TableBody>
           </Table>
 
@@ -152,118 +145,231 @@
       :request="selectedRequest"
     />
   </div>
+
+  
+  <!-- Modal de Cancelamento -->
+  <Dialog :open="cancellationModalOpen" @update:open="cancellationModalOpen = false">
+    <DialogContent class="sm:max-w-[400px]">
+      <DialogHeader>
+        <DialogTitle>Motivo do Cancelamento</DialogTitle>
+      </DialogHeader>
+
+      <div class="space-y-2">
+        <Input
+          v-model="cancellationReason"
+          placeholder="Digite o motivo do cancelamento"
+          :disabled="loadingCancel"
+        />
+      </div>
+
+      <DialogFooter>
+        <Button 
+          variant="outline" 
+          @click="cancellationModalOpen = false" 
+          :disabled="loadingCancel"
+        >
+          Cancelar
+        </Button>
+        <Button 
+          @click="submitCancellation" 
+          class="bg-green-600 hover:bg-green-700"
+          :disabled="loadingCancel"
+        >
+          <Loader2 v-if="loadingCancel" class="mr-2 h-4 w-4 animate-spin" />
+          Salvar
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+
+
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Loader2, AlertCircle, MoreHorizontal, Eye, Edit, Check, X, FileText } from 'lucide-vue-next';
-import api from '../api/axios';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ref, computed, onMounted } from 'vue'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Plus, Search, Loader2, AlertCircle, MoreHorizontal, Eye, Edit, Check, X, FileText } from 'lucide-vue-next'
+import api from '../api/axios'
+import TravelRequestModal from '@/components/TravelRequestModal.vue'
+import { XCircle } from 'lucide-vue-next';
+import { useToast } from '../composables/useToast';
+
 
 // Estado
-const travelRequests = ref([]);
-const loading = ref(false);
-const error = ref('');
-const statusFilter = ref('all');
-const searchQuery = ref('');
-const showCreateModal = ref(false);
-const selectedRequest = ref(null);
+const travelRequests = ref([])
+const loading = ref(false)
+const error = ref('')
+const statusFilter = ref('all')
+const searchQuery = ref('')
+const showCreateModal = ref(false)
+const selectedRequest = ref(null)
+
+const cancellationModalOpen = ref(false)
+const cancellingRequest = ref(null)
+const cancellationReason = ref('')
+const loadingCancel = ref(false)
+const { success, error: toastError } = useToast();
 
 // Computed
 const filteredRequests = computed(() => {
-  let filtered = travelRequests.value;
-  
+  let filtered = travelRequests.value
+
   if (statusFilter.value !== 'all') {
-    filtered = filtered.filter(req => req.status === statusFilter.value);
+    filtered = filtered.filter(req => req.status === statusFilter.value)
   }
-  
+
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(req => 
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(req =>
       req.destination.toLowerCase().includes(query) ||
-      req.user?.name.toLowerCase().includes(query)
-    );
+      req.requester_name.toLowerCase().includes(query)
+    )
   }
-  
-  return filtered;
-});
+
+  return filtered
+})
 
 // Métodos
 const loadTravelRequests = async () => {
   try {
-    loading.value = true;
-    error.value = '';
-    const response = await api.get('/travel-requests');
-    travelRequests.value = response.data;
+    loading.value = true
+    error.value = ''
+    const response = await api.get('/travel-requests')
+    travelRequests.value = response.data.data
   } catch (err) {
-    error.value = 'Erro ao carregar pedidos de viagem';
-    console.error('Erro:', err);
+    error.value = 'Erro ao carregar pedidos de viagem'
+    console.error('Erro:', err)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const updateStatus = async (request, newStatus) => {
-  try {
-    await api.patch(`/travel-requests/${request.id}/status`, { status: newStatus });
-    request.status = newStatus;
-    // Mostrar toast de sucesso aqui
-  } catch (err) {
-    console.error('Erro ao atualizar status:', err);
-    // Mostrar toast de erro aqui
+  console.log('🔄 Atualizando status para:', newStatus);
+  
+  if (newStatus === 'cancelado') {
+    cancellingRequest.value = request
+    cancellationReason.value = ''
+    cancellationModalOpen.value = true
+    return
   }
-};
+
+  try {
+    const response = await api.patch(`/travel-requests/${request.id}/status`, { status: newStatus })
+    
+    Object.assign(request, response.data.data)
+    
+    const message = response.data.message || 
+                   (newStatus === 'aprovado' ? 'Pedido aprovado com sucesso!' : 'Status atualizado com sucesso!');
+    success(message);
+    
+  } catch (err) {
+    console.log('❌ Erro ao atualizar status:', err.response?.data);
+    
+    const errorMessage = err.response?.data?.error || 'Erro ao atualizar status';
+    toastError(errorMessage);
+    
+  }
+}
+const submitCancellation = async () => {
+  
+  if (!cancellationReason.value.trim()) {
+    const errorMsg = 'Informe o motivo do cancelamento';
+    toastError(errorMsg);
+    return
+  }
+
+  try {
+    loadingCancel.value = true
+
+    const response = await api.patch(
+      `/travel-requests/${cancellingRequest.value.id}/status`,
+      {
+        status: 'cancelado',
+        cancellation_reason: cancellationReason.value
+      }
+    )
+
+    Object.assign(cancellingRequest.value, response.data.data)
+
+    const message = response.data.message || 'Pedido cancelado com sucesso!';
+    success(message);
+
+
+    setTimeout(() => {
+      cancellationModalOpen.value = false
+      cancellationReason.value = ''
+    }, 1500)
+
+  } catch (err) {    
+    let errorMessage;
+    
+    if (err.response?.data?.errors && typeof err.response.data.errors === 'object') {
+      const firstField = Object.keys(err.response.data.errors)[0];
+      errorMessage = err.response.data.errors[firstField][0];
+    } else {
+      errorMessage = err.response?.data?.error || 'Erro ao cancelar';
+    }
+    
+    toastError(errorMessage, err.response?.data?.errors || null);
+    
+  } finally {
+    loadingCancel.value = false
+  }
+}
+
 
 const viewRequest = (request) => {
-  // Implementar visualização detalhada
-  console.log('Visualizar:', request);
-};
+  console.log('Visualizar:', request)
+}
 
 const editRequest = (request) => {
-  selectedRequest.value = request;
-  showCreateModal.value = true;
-};
+  selectedRequest.value = request
+  showCreateModal.value = true
+}
 
 const handleRequestSaved = () => {
-  showCreateModal.value = false;
-  selectedRequest.value = null;
-  loadTravelRequests();
-};
+  showCreateModal.value = false
+  selectedRequest.value = null
+  loadTravelRequests()
+}
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('pt-BR');
-};
+  return new Date(dateString).toLocaleDateString('pt-BR')
+}
 
 const getStatusLabel = (status) => {
   const labels = {
-    pending: 'Pendente',
-    approved: 'Aprovado',
-    rejected: 'Rejeitado',
-    completed: 'Concluído'
-  };
-  return labels[status] || status;
-};
+    solicitado: 'Pendente',
+    aprovado: 'Aprovado',
+    rejeitado: 'Rejeitado',
+    concluido: 'Concluído'
+  }
+  return labels[status] || status
+}
 
 const getStatusVariant = (status) => {
   const variants = {
-    pending: 'secondary',
-    approved: 'default',
-    rejected: 'destructive',
-    completed: 'outline'
-  };
-  return variants[status] || 'secondary';
-};
+    solicitado: 'secondary',
+    aprovado: 'default',
+    rejeitado: 'destructive',
+    concluido: 'outline'
+  }
+  return variants[status] || 'secondary'
+}
 
 // Lifecycle
 onMounted(() => {
-  loadTravelRequests();
-});
+  loadTravelRequests()
+})
 </script>

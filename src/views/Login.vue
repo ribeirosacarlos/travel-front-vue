@@ -95,16 +95,18 @@ const auth = useAuthStore();
 const router = useRouter();
 
 const handleLogin = async () => {
-  try {
-    loading.value = true;
-    error.value = '';
-    
-    await auth.login(email.value, password.value);
-    router.push('/');
-  } catch (err) {
-    error.value = err.response?.data?.message || 'Erro ao fazer login. Tente novamente.';
-  } finally {
-    loading.value = false;
+  loading.value = true
+  error.value = ''
+
+  const { ok, error: errMsg } = await auth.login(email.value, password.value)
+
+  loading.value = false
+
+  if (ok) {
+    router.replace('/') // ou { name: 'home' }
+  } else {
+    error.value = errMsg || 'Não foi possível entrar.'
   }
-};
+}
+
 </script>

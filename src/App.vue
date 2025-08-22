@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <router-view />
+    <ToastContainer  />
   </div>
 </template>
 
@@ -18,3 +19,15 @@ body {
   padding: 20px;
 }
 </style>
+
+
+<script>
+import ToastContainer from '@/components/ToastContainer.vue'
+
+export default {
+  name: 'App',
+  components: {
+    ToastContainer
+  }
+}
+</script>
