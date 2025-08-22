@@ -1,24 +1,50 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import Login from '../views/Login.vue';
-import Dashboard from '../views/Dashboard.vue';
-import TravelForm from '../views/TravelForm.vue';
-import { useAuthStore } from '../store/auth';
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
 
 const routes = [
-  { path: '/login', component: Login },
-  { path: '/', component: Dashboard, meta: { requiresAuth: true } },
-  { path: '/new-travel', component: TravelForm, meta: { requiresAuth: true } },
-];
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/register',
+    name: 'Register', 
+    component: () => import('@/views/Register.vue'),
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/',
+    component: () => import('@/views/AppLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'Dashboard',
+        component: () => import('@/views/Dashboard.vue')
+      }
+      // outras rotas...
+    ]
+  }
+]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes,
-});
+  routes
+})
 
-router.beforeEach((to, from, next) => {
-  const auth = useAuthStore();
-  if (to.meta.requiresAuth && !auth.token) next('/login');
-  else next();
-});
+// Guard de autenticação
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+  
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return '/login'
+  }
+  
+  if (to.meta.requiresGuest && auth.isAuthenticated) {
+    return '/'
+  }
+})
 
-export default router;
+export default router
