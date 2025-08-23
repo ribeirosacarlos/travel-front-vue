@@ -109,6 +109,10 @@
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
+                      <DropdownMenuItem @click="openTravelDetails(request)">
+                        <Eye class="mr-2 h-4 w-4" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
                       <DropdownMenuItem @click="updateStatus(request, 'aprovado')">
                         <Check class="mr-2 h-4 w-4" />
                         Aprovar
@@ -182,6 +186,34 @@
     </DialogContent>
   </Dialog>
 
+  <Dialog v-model:open="showDetailsModal">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Detalhes da Viagem</DialogTitle>
+        <DialogDescription v-if="selectedRequest">
+          Veja as informações completas do pedido de viagem.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div v-if="selectedRequest" class="space-y-2">
+        <p><strong>ID:</strong> #{{ selectedRequest.id }}</p>
+        <p><strong>Solicitante:</strong> {{ selectedRequest.requester_name }}</p>
+        <p><strong>Destino:</strong> {{ selectedRequest.destination }}</p>
+        <p><strong>Data de Partida:</strong> {{ formatDate(selectedRequest.departure_date) }}</p>
+        <p><strong>Data de Retorno:</strong> {{ formatDate(selectedRequest.return_date) }}</p>
+        <p>
+          <strong>Status:</strong>
+          <Badge :variant="getStatusVariant(selectedRequest.status)">
+            {{ getStatusLabel(selectedRequest.status) }}
+          </Badge>
+        </p>
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" @click="showDetailsModal = false">Fechar</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 
 
 </template>
@@ -219,6 +251,7 @@ const cancellingRequest = ref(null)
 const cancellationReason = ref('')
 const loadingCancel = ref(false)
 const { success, error: toastError } = useToast();
+const showDetailsModal = ref(false)
 
 // Computed
 const filteredRequests = computed(() => {
@@ -328,6 +361,10 @@ const submitCancellation = async () => {
   }
 }
 
+const openTravelDetails = (request) => {
+  selectedRequest.value = request
+  showDetailsModal.value = true
+}
 
 const viewRequest = (request) => {
   console.log('Visualizar:', request)
