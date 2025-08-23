@@ -29,10 +29,9 @@
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-                <SelectItem value="approved">Aprovado</SelectItem>
-                <SelectItem value="rejected">Rejeitado</SelectItem>
-                <SelectItem value="completed">Concluído</SelectItem>
+                <SelectItem value="solicitado">Pendente</SelectItem>
+                <SelectItem value="aprovado">Aprovado</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -255,21 +254,17 @@ const showDetailsModal = ref(false)
 
 // Computed
 const filteredRequests = computed(() => {
-  let filtered = travelRequests.value
+  return travelRequests.value.filter((request) => {
+    const matchesStatus =
+      statusFilter.value === 'all' || request.status === statusFilter.value
 
-  if (statusFilter.value !== 'all') {
-    filtered = filtered.filter(req => req.status === statusFilter.value)
-  }
-
-  if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(req =>
-      req.destination.toLowerCase().includes(query) ||
-      req.requester_name.toLowerCase().includes(query)
-    )
-  }
+    const matchesSearch =
+      request.destination.toLowerCase().includes(query) ||
+      request.requester_name.toLowerCase().includes(query)
 
-  return filtered
+    return matchesStatus && matchesSearch
+  })
 })
 
 // Métodos
