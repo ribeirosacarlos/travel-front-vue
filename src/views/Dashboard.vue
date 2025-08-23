@@ -97,7 +97,7 @@
                 <TableCell>{{ formatDate(request.departure_date) }}</TableCell>
                 <TableCell>{{ formatDate(request.return_date) }}</TableCell>
                 <TableCell>
-                  <Badge :variant="getStatusVariant(request.status)">
+                  <Badge :class="getStatusColor(request.status)">
                     {{ getStatusLabel(request.status) }}
                   </Badge>
                 </TableCell>
@@ -203,7 +203,7 @@
         <p><strong>Data de Retorno:</strong> {{ formatDate(selectedRequest.return_date) }}</p>
         <p>
           <strong>Status:</strong>
-          <Badge :variant="getStatusVariant(selectedRequest.status)">
+          <Badge :class="getStatusColor(selectedRequest.status)">
             {{ getStatusLabel(selectedRequest.status) }}
           </Badge>
         </p>
@@ -389,20 +389,20 @@ const getStatusLabel = (status) => {
   const labels = {
     solicitado: 'Pendente',
     aprovado: 'Aprovado',
-    rejeitado: 'Rejeitado',
+    cancelado: 'Cancelado',
     concluido: 'Concluído'
   }
   return labels[status] || status
 }
 
-const getStatusVariant = (status) => {
-  const variants = {
-    solicitado: 'secondary',
-    aprovado: 'default',
-    rejeitado: 'destructive',
-    concluido: 'outline'
+const getStatusColor = (status) => {
+  const colors = {
+    solicitado: 'bg-blue-500 text-white',
+    aprovado: 'bg-green-500 text-white',
+    cancelado: 'bg-red-500 text-white',
+    concluido: 'bg-green-600 text-white'
   }
-  return variants[status] || 'secondary'
+  return colors[status] || 'bg-gray-500 text-white'
 }
 
 // Lifecycle
